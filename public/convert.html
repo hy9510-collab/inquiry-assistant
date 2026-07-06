@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>한글파일(.hwpx) 변환</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <p><a href="/" style="color:#2563eb;text-decoration:none;">← 질의서·보고서 작성으로 돌아가기</a></p>
+    <h1>한글파일(.hwpx) 변환</h1>
+    <p class="sub">칸을 채우거나 원고를 붙여넣으면 경기도의회 서식의 한글파일(.hwpx)을 만들어 드립니다.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="form">① 폼으로 작성</button>
+    <button class="tab" data-tab="md">② 원고 붙여넣기</button>
+  </nav>
+
+  <!-- ① 폼 탭 -->
+  <section id="form" class="panel active">
+    <div class="form-layout">
+    <div class="form-main">
+    <div class="typebar">
+      <label>질의서 유형
+        <select id="f-type">
+          <option value="">— 유형 선택 —</option>
+          <option value="budget">예산안 심사</option>
+          <option value="settlement">결산 심사</option>
+          <option value="audit">행정사무감사</option>
+          <option value="ordinance">조례안 심사</option>
+          <option value="report">업무보고·일반회의</option>
+          <option value="provincial">도정질문</option>
+          <option value="written">서면질의</option>
+        </select>
+      </label>
+      <p id="type-hint" class="type-hint">유형을 고르면 제목·파일명과 작성 포인트가 자동으로 맞춰집니다.</p>
+    </div>
+
+    <fieldset class="cover">
+      <legend>표지</legend>
+      <div id="cover-grid" class="cover-grid">
+        <label class="title full">제목 <input id="f-title" placeholder="예) 2025회계연도 결산 분석(질의)자료" /></label>
+        <!-- 표지 칸은 선택한 유형에 따라 자동으로 채워집니다 -->
+      </div>
+    </fieldset>
+
+    <div id="items"></div>
+    <button id="add-item" type="button" class="ghost">+ 질의 항목 추가</button>
+
+    <div class="actions">
+      <label class="fname">파일명 <input id="f-filename" placeholder="질의서" /></label>
+      <button id="to-md" type="button" class="ghost">원고로 보내서 다듬기 →</button>
+      <button id="build-form" type="button" class="primary">한글파일 만들기</button>
+    </div>
+    </div><!-- /form-main -->
+    <aside class="form-side">
+      <div class="side-head">미리보기</div>
+      <div id="form-preview" class="preview" aria-label="미리보기"></div>
+    </aside>
+    </div><!-- /form-layout -->
+  </section>
+
+  <!-- ② 원고 탭 -->
+  <section id="md" class="panel">
+    <p class="hint">마크다운 원고를 붙여넣거나 폼에서 보낸 원고를 다듬으세요. <code>#</code> 제목, <code>□</code> 구분, <code>⚪</code> 핵심, <code>- ...?</code> 세부질문 형식을 그대로 인식합니다.</p>
+    <div class="md-grid">
+      <textarea id="md-text" spellcheck="false" placeholder="# 2025회계연도 결산 분석(질의)자료&#10;&#10;| 구 분 | 내 용 |&#10;| --- | --- |&#10;| 일 시 | ... |"></textarea>
+      <div id="md-preview" class="preview" aria-label="미리보기"></div>
+    </div>
+    <div class="actions">
+      <label class="fname">파일명 <input id="md-filename" placeholder="질의서" /></label>
+      <button id="build-md" type="button" class="primary">한글파일 만들기</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
