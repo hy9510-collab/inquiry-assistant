@@ -7,6 +7,7 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const type = body.type || "질의서";
+  const guide = String(body.guide || "").slice(0, 2000); // 질의서 유형별 점검 관점(선택)
   const topic = String(body.topic || "").slice(0, 20000);
   const source = String(body.source || "").slice(0, 40000);
 
@@ -17,7 +18,10 @@ export default async function handler(req, res) {
   if (!key) return res.status(400).json({ error: "NO_KEY: 서버에 AI 키가 설정되지 않았습니다." });
 
   try {
-    const prompt = `[종류] ${type}\n\n[골격 — 이 구조·기호를 그대로 따르세요]\n${TEMPLATES[type]}\n\n[주제]\n${topic}\n\n[자료]\n${source.trim() || "(제공된 자료 없음 — 자료가 필요한 값은 ○○ 또는 [확인 필요]로 두세요)"}`;
+    const guideBlock = guide.trim()
+      ? `\n\n[유형별 점검 관점 — 이 관점을 중심으로 질의를 구성하되, 사실·수치는 아래 자료에 있는 것만 사용]\n${guide.trim()}`
+      : "";
+    const prompt = `[종류] ${type}${guideBlock}\n\n[골격 — 이 구조·기호를 그대로 따르세요]\n${TEMPLATES[type]}\n\n[주제]\n${topic}\n\n[자료]\n${source.trim() || "(제공된 자료 없음 — 자료가 필요한 값은 ○○ 또는 [확인 필요]로 두세요)"}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
     const r = await fetch(url, {
       method: "POST",
