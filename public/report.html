@@ -24,6 +24,10 @@
   .toolbar .lock{font-size:12.5px;color:var(--muted)}
   .flow{background:#fff;border:1px solid var(--line);border-left:4px solid var(--navy);
     border-radius:10px;padding:11px 15px;margin-top:12px;font-size:13px;color:#33415a}
+  .stinfo{background:#f7faff;border:1px solid #d6e2f4;border-radius:10px;
+    padding:12px 14px;margin-top:10px;font-size:13px;color:#33415a}
+  .stinfo b{color:var(--navy)}
+  .stinfo .line{margin-top:5px}
 
   .card{background:#fff;border:1px solid var(--line);border-radius:14px;
     padding:20px 22px;margin-top:16px;box-shadow:0 1px 3px rgba(20,40,80,.05)}
@@ -99,17 +103,28 @@
 
     <div class="flow">작성 순서 &nbsp;<b>①</b> 보고서 종류 &nbsp;→&nbsp; <b>②</b> 기본 정보·내용 입력(또는 파일 첨부) &nbsp;→&nbsp; <b>AI</b> 초안 자동작성 &nbsp;→&nbsp; <b>③</b> 원고 확인·수정 &nbsp;→&nbsp; <b>④</b> 한글파일 만들기</div>
 
-    <!-- ① 종류 -->
+    <!-- ① 종류·유형 -->
     <section class="card">
-      <div class="card-head"><span class="badge">1</span><h2>보고서 종류</h2></div>
+      <div class="card-head"><span class="badge">1</span><h2>보고서 종류·유형</h2></div>
       <div class="row">
         <select id="r-type" onchange="onType()">
           <option value="현안·정책 검토보고서">현안·정책 검토보고서</option>
           <option value="활동·결과 보고서">활동·결과 보고서</option>
         </select>
+        <select id="r-subtype" onchange="onSubtype()">
+          <option value="일반">보고서 유형 선택 …</option>
+          <option value="예산안 검토">예산안 검토</option>
+          <option value="결산 검토">결산 검토</option>
+          <option value="행정사무감사">행정사무감사</option>
+          <option value="업무보고 검토">업무보고 검토</option>
+          <option value="조례안 검토">조례안 검토</option>
+          <option value="현안·정책">현안·정책</option>
+          <option value="활동·결과">활동·결과</option>
+        </select>
         <button class="ghost" onclick="insertTemplate()">빈 양식 넣기</button>
       </div>
       <p id="guide" class="guide"></p>
+      <div id="r-subtypeInfo" class="stinfo" hidden></div>
     </section>
 
     <!-- ② 기본 정보 -->
@@ -165,6 +180,44 @@ const GUIDES = {
   "활동·결과 보고서": "개요 · 추진경과·주요내용 · 결과·조치사항 · 향후계획",
 };
 const NAMES = ["보고서", ...Object.keys(GUIDES)];
+
+// 보고서 유형별 정리 관점(focus)과 준비하면 좋은 자료(materials).
+// focus는 AI 초안에 '이 관점으로 정리'하라고 전달되고, materials는 화면 안내로 표시됨.
+const SUBTYPES = {
+  "일반": { focus:"", materials:"" },
+  "예산안 검토": {
+    focus:"신규·증액·집행부진 사업의 타당성, 산출근거, 재원 대책 검토",
+    materials:"사업설명(계획)서, 세출예산서, 산출내역서, 중기지방재정계획, 전년도 집행실적" },
+  "결산 검토": {
+    focus:"실집행률, 이월·불용·예비비, 성과 달성, 전년 지적사항 조치 검토",
+    materials:"세입세출결산서, 세부 집행내역, 이월·불용 명세, 성과보고서, 전년도 결산 지적 조치결과" },
+  "행정사무감사": {
+    focus:"전년 지적사항 이행, 업무 추진실적, 관리·감독 실태 정리",
+    materials:"업무현황·추진실적 자료, 전년 감사 지적·시정요구 조치결과, 관련 통계, 자체감사 결과" },
+  "업무보고 검토": {
+    focus:"정책 방향, 추진 일정 대비 진척도, 예산 투입 대비 성과, 향후 계획 검토",
+    materials:"업무보고 자료, 추진계획서·일정표, 예산 투입 현황, 관련 정책·현안 자료" },
+  "조례안 검토": {
+    focus:"입법 필요성, 상위법령 부합, 유사·중복 조례, 예산 소요·재원 대책 검토",
+    materials:"조례안 원문, 제안이유서, 비용추계서, 상위법령·유사 조례 비교표" },
+  "현안·정책": {
+    focus:"현안의 배경·경위, 쟁점, 대응 방향 정리",
+    materials:"현안 관련 자료, 관련 통계·현황, 관련 정책·중장기 계획" },
+  "활동·결과": {
+    focus:"행사·출장·회의의 목적·경과·결과·조치사항 정리",
+    materials:"행사·출장 계획서, 참석·진행 기록, 결과·성과 자료" },
+};
+function onSubtype(){
+  const v = document.getElementById('r-subtype').value;
+  const s = SUBTYPES[v];
+  const box = document.getElementById('r-subtypeInfo');
+  if(!s || !s.focus){ box.hidden = true; box.innerHTML=''; return; }
+  box.hidden = false;
+  box.innerHTML =
+    '<div><b>['+v+'] 정리 포인트</b> — '+s.focus+'</div>' +
+    '<div class="line">📎 <b>준비하면 좋은 자료</b> : '+s.materials+'</div>' +
+    '<div class="line" style="color:#5b6675">위 자료를 아래 <b>참고 파일</b>로 첨부하면 그 수치·사실을 반영합니다. (첨부가 없으면 해당 값은 ○○ 또는 [확인 필요]로 표시됩니다)</div>';
+}
 
 function onType(){
   const t = document.getElementById('r-type').value;
@@ -268,6 +321,9 @@ function buildSource(){   // 기본정보 + 첨부 파일을 하나의 참고자
 }
 async function aiWrite(){
   const type = document.getElementById('r-type').value;
+  const subtype = document.getElementById('r-subtype').value;
+  const s = SUBTYPES[subtype];
+  const guide = (s && s.focus) ? ('['+subtype+'] '+s.focus) : '';
   const content = document.getElementById('r-content').value.trim();
   const ta = document.getElementById('r-md');
   const msg = document.getElementById('r-msg');
@@ -277,7 +333,7 @@ async function aiWrite(){
   msg.className=''; msg.textContent='AI가 초안을 쓰는 중... (보통 10~30초)';
   try{
     const res = await fetch('/api/write', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({type, topic, source: buildSource()})});
+      body: JSON.stringify({type, subtype, guide, topic, source: buildSource()})});
     const data = await res.json().catch(()=>({}));
     if(!res.ok){
       if(data.error && String(data.error).startsWith('NO_KEY')){ msg.className='err'; msg.innerHTML='서버에 AI 키(<b>GEMINI_API_KEY</b>)가 설정되지 않았습니다. Vercel 환경변수에 키를 넣어 주세요.'; return; }
@@ -290,5 +346,6 @@ async function aiWrite(){
   }catch(e){ msg.className='err'; msg.textContent='오류: ' + e.message; }
 }
 onType();
+onSubtype();
 </script>
 </body></html>
