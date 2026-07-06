@@ -4,5 +4,13 @@
     { "source": "/convert", "destination": "/convert.html" },
     { "source": "/app.js", "destination": "/public/app.js" },
     { "source": "/style.css", "destination": "/public/style.css" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    }
   ]
 }
