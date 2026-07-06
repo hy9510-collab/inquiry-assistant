@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/", "destination": "/public/index.html" },
     { "source": "/convert", "destination": "/convert.html" },
+    { "source": "/report", "destination": "/report.html" },
     { "source": "/app.js", "destination": "/public/app.js" },
     { "source": "/style.css", "destination": "/public/style.css" }
   ],
