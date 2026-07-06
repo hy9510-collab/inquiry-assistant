@@ -1,0 +1,11 @@
+{
+  "name": "질의서-hwpx-빌더",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "질의서 마크다운(.md) → 경기도의회 서식 한글파일(.hwpx) 변환 엔진",
+  "dependencies": {
+    "adm-zip": "^0.5.17",
+    "kordoc": "^2.9.0"
+  }
+}
