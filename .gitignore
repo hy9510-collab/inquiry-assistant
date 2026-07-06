@@ -1,0 +1,12 @@
+# --- Node ---
+node_modules/
+npm-debug.log*
+
+# --- OS / 임시 파일 ---
+.DS_Store
+Thumbs.db
+~$*
+*.log
+
+# --- Vercel ---
+.vercel

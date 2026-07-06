@@ -1,0 +1,14 @@
+{
+  "name": "inquiry-assistant",
+  "version": "1.0.0",
+  "description": "질의서 작성 비서 — 폼 입력으로 경기도의회 질의서 원고 미리보기 및 서식 적용 HWPX 다운로드",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.5.17",
+    "kordoc": "^2.9.0"
+  }
+}
