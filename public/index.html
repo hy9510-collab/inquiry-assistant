@@ -132,6 +132,7 @@
       <p class="note">주제나 지시를 적고 버튼을 누르면 아래 원고칸이 자동으로 채워집니다. 원고칸에 자료를 붙여넣거나 아래 <b>참고 파일</b>을 첨부하면 그 내용을 함께 참고합니다. (AI 키는 서버에 안전하게 보관됩니다. 입력·첨부 내용은 구글 서버로 전송되어 처리됩니다)</p>
       <div class="row">
         <input type="text" id="topic" placeholder="예: 학교급식 잔반 처리 예산 집행 점검">
+        <label class="file">질의 개수 <input type="number" id="qcount" min="1" max="10" value="3" style="width:60px"></label>
         <button onclick="aiWrite()">AI로 초안 만들기</button>
       </div>
       <div class="row filebar">
@@ -387,6 +388,7 @@ async function aiWrite(){
   const s = SUBTYPES[subtype];
   const guide = (s && s.focus) ? ('['+subtype+'] '+s.focus) : '';
   const topic = document.getElementById('topic').value.trim();
+  const count = Math.max(1, Math.min(10, parseInt(document.getElementById('qcount').value, 10) || 1));
   const ta = document.getElementById('md');
   const msg = document.getElementById('msg');
   if(!topic){ msg.className='err'; msg.textContent='먼저 주제나 지시를 입력해 주세요.'; return; }
@@ -394,7 +396,7 @@ async function aiWrite(){
   msg.className=''; msg.textContent='AI가 초안을 쓰는 중... (보통 10~30초)';
   try{
     const res = await fetch('/api/write', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({type, subtype, guide, topic, source: buildSource()})});
+      body: JSON.stringify({type, subtype, guide, topic, count, source: buildSource()})});
     const data = await res.json().catch(()=>({}));
     if(!res.ok){
       if(data.error && String(data.error).startsWith('NO_KEY')){ msg.className='err'; msg.innerHTML='서버에 AI 키(<b>GEMINI_API_KEY</b>)가 설정되지 않았습니다. Vercel 환경변수에 키를 넣어 주세요.'; return; }
