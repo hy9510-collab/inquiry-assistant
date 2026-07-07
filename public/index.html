@@ -140,7 +140,7 @@
       </div>
       <p id="refStatus" class="guide">첨부된 참고 파일 없음</p>
       <div class="row filebar" id="budgetBar" hidden>
-        <button class="ghost" onclick="loadBudget()">📊 예산 분석 비서에서 결산 분석 불러오기</button>
+        <button class="ghost" id="budgetBtn" onclick="loadBudget()">📊 예산 분석 비서에서 결산 분석 불러오기</button>
         <label class="file">회계연도 <input type="text" id="budgetYear" placeholder="예: 2023" style="width:92px"></label>
       </div>
       <p id="budgetStatus" class="guide" hidden></p>
@@ -258,7 +258,13 @@ function onSubtype(){
   const box = document.getElementById('subtypeInfo');
   const n = document.getElementById('name');
   if(isDefaultName(n.value)) n.value = SUBFILE[v] || '질의서';   // 유형에 맞는 파일 이름 기본값
-  document.getElementById('budgetBar').hidden = !(v === '예산안 심사' || v === '결산 심사'); // 예산·결산일 때만 연동 버튼
+  const showBudget = (v === '예산안 심사' || v === '결산 심사'); // 예산·결산일 때만 연동 버튼
+  document.getElementById('budgetBar').hidden = !showBudget;
+  if(showBudget){
+    const isBudget = (v === '예산안 심사');
+    document.getElementById('budgetBtn').textContent = '📊 예산 분석 비서에서 ' + (isBudget ? '예산 분석' : '결산 분석') + ' 불러오기';
+    document.getElementById('budgetYear').placeholder = isBudget ? '예: 2026' : '예: 2023';
+  }
   if(!s || !s.focus){ box.hidden = true; box.innerHTML=''; return; }
   box.hidden = false;
   box.innerHTML =
@@ -341,25 +347,31 @@ function renderRef(){
   status.textContent = '첨부됨 → ' + refFiles.map(r=>r.name+'('+r.text.length+'자)').join(', ');
 }
 function clearRef(){ refFiles=[]; renderRef(); }
-async function loadBudget(){   // 예산 분석 비서에서 결산 분석을 불러와 참고자료로 자동 투입
+async function loadBudget(){   // 예산 분석 비서에서 예산/결산 분석을 불러와 참고자료로 자동 투입
   const status = document.getElementById('budgetStatus');
+  const sub = document.getElementById('subtype').value;
+  const kind = (sub === '예산안 심사') ? 'budget' : 'settlement';
+  const label = (kind === 'budget') ? '예산 분석' : '결산 분석';
+  const kindKo = (kind === 'budget') ? '예산' : '결산';
   const yr = (document.getElementById('budgetYear').value || '').trim();
   status.hidden = false; status.className='guide';
-  status.textContent = '예산 분석 비서에서 결산 분석을 불러오는 중... (10~30초 걸릴 수 있어요)';
+  status.textContent = '예산 분석 비서에서 ' + label + '을 불러오는 중... (10~30초 걸릴 수 있어요)';
   try{
-    const res = await fetch('/api/budget' + (yr ? ('?year=' + encodeURIComponent(yr)) : ''));
+    const q = new URLSearchParams({ kind });
+    if(yr) q.set('year', yr);
+    const res = await fetch('/api/budget?' + q.toString());
     const data = await res.json().catch(()=>({}));
     if(!res.ok){
       if(String(data.error||'').startsWith('PROTECTED')){
         status.className='err';
-        status.innerHTML='예산 비서가 <b>로그인 보호</b> 상태라 자동으로 못 불러왔습니다. 최초 1회 설정(Protection Bypass 토큰)이 필요합니다 — 안내를 참고해 주세요.';
+        status.innerHTML='예산 비서가 <b>로그인 보호</b> 상태라 자동으로 못 불러왔습니다. 최초 1회 설정(로그인 보호 해제 또는 Bypass 토큰)이 필요합니다 — 안내를 참고해 주세요.';
         return;
       }
       status.className='err'; status.textContent='불러오기 실패: ' + (data.error||res.status); return;
     }
-    refFiles.push({name: '예산분석_결산_' + (data.year||'') + '.txt', text: data.text||''});
+    refFiles.push({name: '예산분석_' + kindKo + '_' + (data.year||'') + '.txt', text: data.text||''});
     renderRef();
-    status.className='ok'; status.textContent='결산 분석을 참고자료로 넣었습니다. 이제 [AI로 초안 만들기]를 누르면 반영됩니다.';
+    status.className='ok'; status.textContent = label + '을 참고자료로 넣었습니다. 이제 [AI로 초안 만들기]를 누르면 반영됩니다.';
   }catch(e){ status.className='err'; status.textContent='오류: ' + e.message; }
 }
 function buildSource(){   // 첨부 파일 + 원고칸 내용을 하나의 참고자료로 합침
