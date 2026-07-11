@@ -1,0 +1,13 @@
+# 배포(정적 서빙) 대상은 index.html, internal.html, data/, api/ 만.
+# 나머지는 업로드하지 않는다 — 공개 URL로 노출되는 것을 방지.
+01_기획
+02_페이퍼
+03_대장
+04_리포트
+__pycache__
+*.py
+*.pyc
+CLAUDE.md
+README.md
+대시보드.html
+.claude
