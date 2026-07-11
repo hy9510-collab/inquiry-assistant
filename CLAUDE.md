@@ -22,6 +22,11 @@
 - 회의록시스템: https://kms.ggc.go.kr (의원별 발언 검색)
 - 선관위 선거통계시스템 (공약 원문)
 
+## 웹페이지 (Vercel 배포)
+- 공개: `index.html` (홈·공약·의회활동) / 내부: `internal.html` (민원·일정·보도·공유인쇄, `ADMIN_PASSWORD` 환경변수로 보호)
+- 데이터 흐름: 대장 xlsx → `python 변환_데이터생성.py` → `data/public.json`(공개) + `api/_data.js`(내부, 함수 전용) → 커밋·푸시 → Vercel 자동 재배포
+- xlsx·docx·hwpx는 `.gitignore`, 웹 파일 외 전부 `.vercelignore`로 배포 제외. 상세 절차는 README.md 참조.
+
 ## Claude Code 개발 과제 (4단계)
 1. **hwpx 생성기**: `04_리포트/템플릿.hwpx`(OWPML zip)의 본문 XML을 치환해 회차별 리포트 생성
 2. **회의록 수집 스크립트**: kms.ggc.go.kr 의원별 발언 목록·링크 수집 → 03_대장에 저장
