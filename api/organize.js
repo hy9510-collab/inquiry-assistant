@@ -3,7 +3,7 @@
 //   • 파일 업로드: POST /api/organize?name=<파일명>&format=<>&note=<>  (본문 = 파일 바이트)
 //   • 텍스트/링크: POST /api/organize  (JSON 본문 {text, url, format, note})
 import { extractText, fileMimeFor } from "../lib/extractText.mjs";
-import { organizeText, organizeFile, GeminiError } from "../lib/organizeCore.mjs";
+import { organizeText, organizeFile, organizeYoutube, GeminiError } from "../lib/organizeCore.mjs";
 
 export const config = { api: { bodyParser: false } };
 export const maxDuration = 60;
@@ -17,8 +17,6 @@ async function readBuf(req) {
 }
 
 async function fromUrl(url) {
-  if (YT.test(url))
-    throw new Error("웹 배포판에서는 유튜브 자막 수집이 제한됩니다. 영상 파일을 올리거나 로컬 앱을 이용해 주세요.");
   const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; InquiryAssistant/1.0)" } });
   if (!r.ok) throw new Error(`링크를 열지 못했습니다(${r.status}).`);
   let html = await r.text();
@@ -58,8 +56,13 @@ export default async function handler(req, res) {
       const format = body.format || "";
       const note = (body.note || "").toString();
       if (body.url && body.url.trim()) {
-        const text = await fromUrl(body.url.trim());
-        doc = await organizeText(text, body.url.trim(), format, note);
+        const u = body.url.trim();
+        if (YT.test(u)) {
+          doc = await organizeYoutube(u, format, note);
+        } else {
+          const text = await fromUrl(u);
+          doc = await organizeText(text, u, format, note);
+        }
       } else if (body.text && body.text.trim()) {
         doc = await organizeText(body.text.trim(), body.source || "메모", format, note);
       } else {
