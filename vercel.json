@@ -1,7 +1,11 @@
 {
+  "functions": {
+    "api/make.js": { "includeFiles": "lib/fonts/**" }
+  },
   "rewrites": [
     { "source": "/", "destination": "/public/index.html" },
     { "source": "/convert", "destination": "/convert.html" },
+    { "source": "/organize", "destination": "/organize.html" },
     { "source": "/report", "destination": "/report.html" },
     { "source": "/app.js", "destination": "/public/app.js" },
     { "source": "/style.css", "destination": "/public/style.css" }
