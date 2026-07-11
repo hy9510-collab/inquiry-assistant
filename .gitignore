@@ -4,6 +4,7 @@
 *.docx
 *.hwpx
 *.pdf
+*.pptx
 # LibreOffice 잠금 파일
 .~lock*
 # 파이썬
@@ -15,3 +16,10 @@ __pycache__/
 .vercel
 # Claude Code 로컬 설정
 .claude/settings.local.json
+# 자료변환 시스템 — API 키·업로드·산출물은 로컬에만 보관
+.env
+05_자료변환/설정.txt
+05_자료변환/입력/*
+05_자료변환/출력/*
+!05_자료변환/입력/.gitkeep
+!05_자료변환/출력/.gitkeep
