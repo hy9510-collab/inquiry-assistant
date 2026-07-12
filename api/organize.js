@@ -34,6 +34,8 @@ export default async function handler(req, res) {
     const url0 = new URL(req.url, "http://x");
     const q = url0.searchParams;
     const name = q.get("name");
+    // 사용자가 본인 Gemini 키를 헤더로 보내면 그 키로 처리(각자 계정·무료 한도). 없으면 서버 공용 키로 대체.
+    const userKey = String(req.headers["x-gemini-key"] || "");
     const buf = await readBuf(req);
 
     let doc;
@@ -43,11 +45,11 @@ export default async function handler(req, res) {
       const note = q.get("note") || "";
       const mime = fileMimeFor(name);
       if (mime) {
-        doc = await organizeFile(buf.toString("base64"), mime, name, format, note);
+        doc = await organizeFile(buf.toString("base64"), mime, name, format, note, userKey);
       } else {
         const text = await extractText(name, buf);
         if (!text || !text.trim()) return res.status(422).json({ error: "파일에서 글자를 찾지 못했습니다." });
-        doc = await organizeText(text, name, format, note);
+        doc = await organizeText(text, name, format, note, userKey);
       }
     } else {
       // 텍스트/링크 (JSON 본문)
@@ -58,13 +60,13 @@ export default async function handler(req, res) {
       if (body.url && body.url.trim()) {
         const u = body.url.trim();
         if (YT.test(u)) {
-          doc = await organizeYoutube(u, format, note);
+          doc = await organizeYoutube(u, format, note, userKey);
         } else {
           const text = await fromUrl(u);
-          doc = await organizeText(text, u, format, note);
+          doc = await organizeText(text, u, format, note, userKey);
         }
       } else if (body.text && body.text.trim()) {
-        doc = await organizeText(body.text.trim(), body.source || "메모", format, note);
+        doc = await organizeText(body.text.trim(), body.source || "메모", format, note, userKey);
       } else {
         return res.status(400).json({ error: "넣은 자료가 없습니다. 파일·링크·텍스트 중 하나를 넣어주세요." });
       }

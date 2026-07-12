@@ -52,9 +52,9 @@
   .fields label.full{grid-column:1 / -1}
   .fields input{font-weight:400}
 
-  select,input[type=text]{padding:10px 12px;font-size:14.5px;border:1px solid #c4ccd8;
+  select,input[type=text],input[type=password]{padding:10px 12px;font-size:14.5px;border:1px solid #c4ccd8;
     border-radius:9px;background:#fff;color:var(--ink)}
-  select:focus,input[type=text]:focus,textarea:focus{outline:none;border-color:var(--navy);
+  select:focus,input[type=text]:focus,input[type=password]:focus,textarea:focus{outline:none;border-color:var(--navy);
     box-shadow:0 0 0 3px rgba(26,58,107,.12)}
   .fname{font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:8px}
   .fname input{width:200px}
@@ -143,7 +143,14 @@
     <!-- AI 초안 -->
     <section class="card ai">
       <div class="card-head"><span class="badge ai-badge">AI</span><h2>AI로 보고서 초안 만들기<span class="tag">Gemini</span></h2></div>
-      <p class="note">위 기본 정보·보고 내용과 아래 <b>참고 파일</b>을 바탕으로 아래 원고칸이 자동으로 채워집니다. (AI 키는 서버에 안전하게 보관됩니다. 입력·첨부 내용은 구글 서버로 전송되어 처리됩니다)</p>
+      <div class="row" style="background:#fff;border:1px solid #cddcf3;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+        <label class="file" style="flex:1;min-width:220px;color:var(--ink)">🔑 내 Gemini 키
+          <input type="password" id="geminiKey" placeholder="본인 무료 Gemini API 키 붙여넣기" style="flex:1;min-width:180px">
+        </label>
+        <label class="file"><input type="checkbox" id="saveKey" checked> 이 브라우저에 저장</label>
+        <a class="file" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">무료 키 발급받기 →</a>
+      </div>
+      <p class="note">위 기본 정보·보고 내용과 아래 <b>참고 파일</b>을 바탕으로 아래 원고칸이 자동으로 채워집니다. (초안은 <b>본인 Gemini 키</b>로 만들어집니다. 키는 이 브라우저에만 저장되고, 입력·첨부 내용은 구글 서버로 전송되어 처리됩니다)</p>
       <div class="row">
         <button onclick="aiWrite()">AI로 보고서 초안 만들기</button>
       </div>
@@ -230,9 +237,12 @@ function insertTemplate(){
   const ta = document.getElementById('r-md');
   if(ta.value.trim() && !confirm('현재 원고 내용을 지우고 「' + t + '」 빈 양식으로 바꿀까요?')) return;
   const msg = document.getElementById('r-msg');
+  const userKey = getUserKey();
+  if(!userKey){ msg.className='err'; msg.innerHTML='먼저 위 <b>내 Gemini 키</b> 칸에 본인 키를 넣어 주세요.'; return; }
+  persistKey();
   msg.className=''; msg.textContent='빈 양식 불러오는 중...';
   fetch('/api/write', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({type:t, topic:'(빈 양식만 필요합니다. 내용을 채우지 말고 골격만 그대로 두세요)', source:''})})
+    body: JSON.stringify({type:t, topic:'(빈 양식만 필요합니다. 내용을 채우지 말고 골격만 그대로 두세요)', source:'', userKey})})
     .then(async res => {
       const data = await res.json().catch(()=>({}));
       if(!res.ok){ throw new Error(data.error || res.status); }
@@ -328,15 +338,18 @@ async function aiWrite(){
   const ta = document.getElementById('r-md');
   const msg = document.getElementById('r-msg');
   if(!content && !refFiles.length){ msg.className='err'; msg.textContent='보고 내용을 입력하거나 참고 파일을 첨부해 주세요.'; return; }
+  const userKey = getUserKey();
+  if(!userKey){ msg.className='err'; msg.innerHTML='먼저 위 <b>내 Gemini 키</b> 칸에 본인 키를 넣어 주세요. (무료 발급: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>)'; return; }
+  persistKey();
   if(ta.value.trim() && !confirm('현재 원고칸 내용을 AI 초안으로 바꿀까요? (입력한 기본 정보·보고 내용과 첨부 파일이 참고자료로 함께 전달됩니다)')) return;
   const topic = content || '첨부한 참고 파일 내용을 바탕으로 보고서를 작성';
   msg.className=''; msg.textContent='AI가 초안을 쓰는 중... (보통 10~30초)';
   try{
     const res = await fetch('/api/write', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({type, subtype, guide, topic, source: buildSource()})});
+      body: JSON.stringify({type, subtype, guide, topic, source: buildSource(), userKey})});
     const data = await res.json().catch(()=>({}));
     if(!res.ok){
-      if(data.error && String(data.error).startsWith('NO_KEY')){ msg.className='err'; msg.innerHTML='서버에 AI 키(<b>GEMINI_API_KEY</b>)가 설정되지 않았습니다. Vercel 환경변수에 키를 넣어 주세요.'; return; }
+      if(data.error && String(data.error).startsWith('NO_KEY')){ msg.className='err'; msg.innerHTML='AI 키가 없습니다. 위 <b>내 Gemini 키</b> 칸에 본인 키를 넣어 주세요.'; return; }
       msg.className='err'; msg.textContent='AI 오류: ' + (data.error||res.status); return;
     }
     ta.value = data.text || '';
@@ -345,6 +358,20 @@ async function aiWrite(){
     msg.className='ok'; msg.textContent='AI 초안이 채워졌습니다. 내용을 꼭 확인·수정한 뒤 [한글파일 만들기]를 누르세요.';
   }catch(e){ msg.className='err'; msg.textContent='오류: ' + e.message; }
 }
+// ── 내 Gemini 키 (이 브라우저에만 저장) ──
+const KEY_LS = 'gg_gemini_key';
+const keyInput = document.getElementById('geminiKey');
+const saveChk = document.getElementById('saveKey');
+try{ const saved = localStorage.getItem(KEY_LS); if(saved) keyInput.value = saved; }catch(e){}
+function getUserKey(){ return (keyInput.value||'').trim(); }
+function persistKey(){
+  try{
+    if(saveChk.checked && getUserKey()) localStorage.setItem(KEY_LS, getUserKey());
+    else localStorage.removeItem(KEY_LS);
+  }catch(e){}
+}
+keyInput.addEventListener('change', persistKey);
+saveChk.addEventListener('change', persistKey);
 onType();
 onSubtype();
 </script>

@@ -43,6 +43,16 @@
     </div>
 
     <div class="card">
+      <div class="card-head"><span class="badge">🔑</span><h2>내 Gemini 키</h2></div>
+      <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="password" id="geminiKey" placeholder="본인 무료 Gemini API 키 붙여넣기" style="flex:1;min-width:200px;padding:10px 12px;font-size:14.5px;border:1px solid #c4ccd8;border-radius:9px">
+        <label style="font-size:13px;color:#5b6675"><input type="checkbox" id="saveKey" checked> 이 브라우저에 저장</label>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-size:13px">무료 키 발급받기 →</a>
+      </div>
+      <p style="font-size:12px;color:#7a8698;margin:8px 0 0">키는 이 브라우저에만 저장되고, 본인 계정 무료 한도로 처리됩니다.</p>
+    </div>
+
+    <div class="card">
       <div class="card-head"><span class="badge">1</span><h2>자료 넣기</h2></div>
       <div id="drop">📎 파일을 끌어다 놓거나 클릭해서 선택<br>
         <small style="color:#7a8698">hwpx · 엑셀 · pptx · docx · pdf · txt · 이미지 (한 파일 4MB 이하)</small>
@@ -98,10 +108,10 @@
       let res;
       if (source.file) {
         res = await fetch(`/api/organize?name=${encodeURIComponent(source.file.name)}&note=${encodeURIComponent(note)}`,
-          { method: "POST", body: source.file });
+          { method: "POST", headers: { "x-gemini-key": getUserKey() }, body: source.file });
       } else {
         res = await fetch("/api/organize", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json", "x-gemini-key": getUserKey() },
           body: JSON.stringify({ url: source.url, text: source.text, note }),
         });
       }
@@ -116,6 +126,8 @@
       if ($("#url").value.trim()) sources.push({ url: $("#url").value.trim(), label: $("#url").value.trim() });
       if ($("#text").value.trim()) sources.push({ text: $("#text").value.trim(), label: "메모" });
       if (!sources.length) { toast("파일·링크·텍스트 중 하나를 넣어주세요."); return; }
+      if (!getUserKey()) { toast("먼저 '내 Gemini 키'를 넣어 주세요. (무료 발급: aistudio.google.com/apikey)"); return; }
+      persistKey();
 
       $("#go").disabled = true; $("#spin").style.display = "block"; $("#out").innerHTML = ""; docs = {};
       let idx = 0;
@@ -166,6 +178,20 @@
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       } catch (e) { toast("다운로드 실패: " + e.message); }
     }
+
+    // ── 내 Gemini 키 (이 브라우저에만 저장) ──
+    const KEY_LS = 'gg_gemini_key';
+    const keyInput = $("#geminiKey"), saveChk = $("#saveKey");
+    try { const s = localStorage.getItem(KEY_LS); if (s) keyInput.value = s; } catch (e) {}
+    function getUserKey() { return (keyInput.value || '').trim(); }
+    function persistKey() {
+      try {
+        if (saveChk.checked && getUserKey()) localStorage.setItem(KEY_LS, getUserKey());
+        else localStorage.removeItem(KEY_LS);
+      } catch (e) {}
+    }
+    keyInput.addEventListener('change', persistKey);
+    saveChk.addEventListener('change', persistKey);
   </script>
 </body>
 </html>

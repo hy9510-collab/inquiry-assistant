@@ -1,5 +1,6 @@
 // AI 초안 만들기 (Gemini) — Vercel 서버리스
-// 키는 코드에 넣지 않는다. Vercel 환경변수 GEMINI_API_KEY 에서만 읽는다(브라우저에 노출 안 됨).
+// 키는 코드에 넣지 않는다. 요청 본문의 사용자 키(userKey)를 우선 쓰고, 없으면 환경변수 GEMINI_API_KEY로 대체한다.
+// 사용자 키는 저장·로그하지 않고 이 호출에만 쓴다.
 import { TEMPLATES, WRITE_SYSTEM, GEMINI_MODEL } from "../lib/templates.mjs";
 
 export default async function handler(req, res) {
@@ -15,8 +16,9 @@ export default async function handler(req, res) {
   if (!TEMPLATES[type]) return res.status(400).json({ error: "알 수 없는 종류입니다." });
   if (!topic.trim()) return res.status(400).json({ error: "주제를 입력해 주세요." });
 
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return res.status(400).json({ error: "NO_KEY: 서버에 AI 키가 설정되지 않았습니다." });
+  // 사용자가 본인 Gemini 키를 보내면 그 키로 처리(각자 계정·무료 한도). 없으면 서버 공용 키로 대체.
+  const key = String(body.userKey || "").trim().slice(0, 200) || process.env.GEMINI_API_KEY;
+  if (!key) return res.status(400).json({ error: "NO_KEY: AI 키가 없습니다. 본인 Gemini 키를 입력해 주세요." });
 
   try {
     const guideBlock = guide.trim()
