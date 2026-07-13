@@ -62,6 +62,15 @@
     resize:vertical;background:#fcfdff}
   input[type=file]{font-size:12.5px}
 
+  /* 출처 바로가기 (화면 표시 전용) */
+  .srclinks{margin-top:12px;border:1px solid #d6e2f4;background:#f7faff;border-radius:10px;padding:13px 15px}
+  .srclinks h3{margin:0 0 6px;font-size:13.5px;color:var(--navy);font-weight:700}
+  .srclinks .hint{color:var(--muted);font-size:12px;margin:0 0 9px}
+  .srclinks ol{margin:0;padding-left:20px}
+  .srclinks li{margin:5px 0;line-height:1.5;font-size:13px}
+  .srclinks a{color:var(--navy);word-break:break-all}
+  .srclinks .kind{font-size:11px;color:var(--muted);margin-left:5px;white-space:nowrap}
+
   /* 버튼 */
   button{background:var(--navy);color:#fff;border:0;border-radius:9px;
     padding:11px 20px;font-size:14.5px;font-weight:600;cursor:pointer;transition:background .15s}
@@ -168,6 +177,7 @@
     <section class="card">
       <div class="card-head"><span class="badge">2</span><h2>원고</h2></div>
       <textarea id="md" placeholder="원고를 여기에 붙여넣으세요. (비어 있으면 위 '빈 양식 넣기'로 뼈대부터 시작할 수 있습니다)"></textarea>
+      <div id="srcLinks" class="srclinks" hidden></div>
       <div class="row filebar">
         <label class="file">원고 파일 불러오기: <input type="file" accept=".md,.txt,.markdown" onchange="loadFile(this)"></label>
       </div>
@@ -326,6 +336,7 @@ function loadFile(input){
   const r = new FileReader();
   r.onload = () => {
     document.getElementById('md').value = r.result;
+    renderSources();
     const n = document.getElementById('name');
     if(!n.value.trim() || TYPES.indexOf(n.value.trim()) >= 0) n.value = f.name.replace(/\.[^.]+$/,'');
   };
@@ -450,11 +461,58 @@ async function aiWrite(){
       msg.className='err'; msg.textContent='AI 오류: ' + (data.error||res.status); return;
     }
     ta.value = data.text || '';
+    renderSources();
     const n = document.getElementById('name');
     if(!n.value.trim() || TYPES.indexOf(n.value.trim()) >= 0) n.value = type;
     msg.className='ok'; msg.textContent='AI 초안이 채워졌습니다. 내용을 꼭 확인·수정한 뒤 [한글파일 만들기]를 누르세요.';
   }catch(e){ msg.className='err'; msg.textContent='오류: ' + e.message; }
 }
+// ── 출처 바로가기 (화면 표시 전용 — 원고칸·한글파일은 건드리지 않음) ──
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function extractSources(md){   // '## 참고자료' 항목 + 본문 URL을 뽑아 링크 후보로 만든다
+  const items = [], seen = new Set();
+  const urlRe = /https?:\/\/[^\s)]+/;
+  const m = md.match(/\n?#{2,3}\s*참고자료[^\n]*\n([\s\S]*?)(?=\n#{1,6}\s|$)/);
+  if(m){
+    for(let raw of m[1].split('\n')){
+      let line = raw.trim();
+      if(!line) continue;
+      line = line.replace(/^(\d+\.|[-*•])\s*/, '').trim();   // 목록 기호 제거
+      if(!line || line.startsWith('(')) continue;             // 안내문·빈 양식 제외
+      if(/자료명,\s*발행처/.test(line)) continue;             // 빈 양식 placeholder 제외
+      const clean = line.replace(/\[확인 필요\]/g, '').trim();
+      if(!/[0-9A-Za-z가-힣]/.test(clean)) continue;           // 알맹이 없는 항목 제외
+      const um = line.match(urlRe);
+      const url = um ? um[0].replace(/[.,)\]]+$/, '') : '';
+      const key = (url || clean).toLowerCase();
+      if(seen.has(key)) continue; seen.add(key);
+      items.push({ text: line, url, query: clean });
+    }
+  }
+  for(let u of (md.match(/https?:\/\/[^\s)]+/g) || [])){       // 본문 어디든 있는 URL(중복 제외)
+    u = u.replace(/[.,)\]]+$/, '');
+    const key = u.toLowerCase();
+    if(seen.has(key)) continue; seen.add(key);
+    items.push({ text: u, url: u, query: u });
+  }
+  return items;
+}
+function renderSources(){
+  const box = document.getElementById('srcLinks');
+  const items = extractSources(document.getElementById('md').value || '');
+  if(!items.length){ box.hidden = true; box.innerHTML = ''; return; }
+  const rows = items.map(it => {
+    if(it.url) return '<li><a href="'+escapeHtml(it.url)+'" target="_blank" rel="noopener">'+escapeHtml(it.text)+'</a> <span class="kind">🔗 링크</span></li>';
+    const q = 'https://www.google.com/search?q=' + encodeURIComponent(it.query);
+    return '<li><a href="'+q+'" target="_blank" rel="noopener">'+escapeHtml(it.text)+'</a> <span class="kind">🔍 검색</span></li>';
+  }).join('');
+  box.innerHTML = '<h3>📎 출처 바로가기</h3>'
+    + '<p class="hint">원고에 남긴 출처입니다. 🔗는 주소로 바로 열리고, 🔍는 자료명으로 웹 검색됩니다.(검색은 Google 기준)</p>'
+    + '<ol>'+rows+'</ol>';
+  box.hidden = false;
+}
+document.getElementById('md').addEventListener('input', renderSources);
+
 // ── 내 Gemini 키 (이 브라우저에만 저장) ──
 const KEY_LS = 'gg_gemini_key';
 const keyInput = document.getElementById('geminiKey');
@@ -471,5 +529,6 @@ keyInput.addEventListener('change', persistKey);
 saveChk.addEventListener('change', persistKey);
 onType();
 onSubtype();
+renderSources();
 </script>
 </body></html>
